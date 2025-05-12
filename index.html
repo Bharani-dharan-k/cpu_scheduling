@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPU Scheduling Algorithms</title>
+    <style>
+        :root {
+            --primary: #60a5fa;
+            --secondary: #f9a8d4;
+            --accent: #93c5fd;
+            --danger: #f87171;
+            --dark: #1e3a8a;
+            --background: #eff6ff;
+            --text: #1e293b;
+            --border: #bfdbfe;
+            --hover: #dbeafe;
+            --process-p1: #60a5fa;
+            --process-p2: #f9a8d4;
+            --process-p3: #93c5fd;
+            --process-p4: #f87171;
+            --process-p5: #a5b4fc;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; }
+
+        body { background: var(--background); color: var(--text); padding: 20px; line-height: 1.6; }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        header {
+            background: var(--dark);
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        h1, h2, h3 { color: #fff; margin-bottom: 10px; }
+
+        .algorithms {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            background: var(--primary);
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn:hover { background: #3b82f6; transform: translateY(-1px); }
+        .btn.active { background: var(--accent); }
+        .btn-add { background: var(--secondary); }
+        .btn-add:hover { background: #ec4899; }
+        .btn-remove { background: var(--danger); }
+        .btn-remove:hover { background: #ef4444; }
+        .btn-run { background: var(--accent); padding: 10px 20px; font-size: 15px; margin-top: 10px; }
+        .btn-run:hover { background: var(--primary); }
+        .btn-small { padding: 4px 8px; font-size: 11px; }
+
+        .controls, .visualization, .results {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .process-table, .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        th, td {
+            border: 1px solid var(--border);
+            padding: 8px;
+            text-align: center;
+        }
+
+        th { background: var(--dark); color: #fff; }
+        tr:nth-child(even) { background: var(--border); }
+        tr:hover { background: var(--hover); }
+
+        #gantt-chart {
+            width: 100%;
+            padding: 15px 0;
+            overflow-x: auto;
+            background: #f8fafc;
+            border-radius: 6px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .gantt-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 10px;
+        }
+
+        .timeline {
+            display: flex;
+            height: 25px;
+            position: relative;
+            background: #fff;
+            border-radius: 4px;
+        }
+
+        .time-marker {
+            position: absolute;
+            top: -18px;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .process-slot {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 600;
+            font-size: 12px;
+            margin: 0 2px;
+            border-radius: 4px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .process-slot:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .process-slot.idle {
+            background: #cbd5e1;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .summary-metrics {
+            margin-top: 15px;
+            padding: 12px;
+            background: var(--border);
+            border-radius: 6px;
+        }
+
+        .summary-metrics div { font-size: 15px; margin-bottom: 6px; }
+
+        .flex-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+        .input-group { display: flex; flex-direction: column; }
+        label { margin-bottom: 4px; font-weight: bold; }
+        input {
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 15px;
+        }
+        input:focuspr:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(96,165,250,0.3);
+        }
+
+        .info-box {
+            background: var(--border);
+            border-left: 5px solid var(--primary);
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .process-p1 { background: var(--process-p1); }
+        .process-p2 { background: var(--process-p2); }
+        .process-p3 { background: var(--process-p3); }
+        .process-p4 { background: var(--process-p4); }
+        .process-p5 { background: var(--process-p5); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CPU Scheduling Algorithms</h1>
+            <p>Visualize CPU scheduling algorithms</p>
+        </header>
+
+        <div class="algorithms">
+            <button class="btn algorithm-btn active" data-algorithm="fcfs">FCFS</button>
+            <button class="btn algorithm-btn" data-algorithm="sjf">SJF</button>
+            <button class="btn algorithm-btn" data-algorithm="srtf">SRTF</button>
+            <button class="btn algorithm-btn" data-algorithm="rr">Round Robin</button>
+            <button class="btn algorithm-btn" data-algorithm="priority">Priority</button>
+        </div>
+
+        <div class="info-box">
+            <h3>About <span id="current-algorithm">FCFS</span></h3>
+            <p id="algorithm-info">FCFS executes processes in arrival order. Non-preemptive.</p>
+        </div>
+
+        <div class="controls">
+            <h2>Process Information</h2>
+            <div class="flex-row" id="rr-controls" style="display: none;">
+                <div class="input-group">
+                    <label for="time-quantum">Time Quantum:</label>
+                    <input type="number" id="time-quantum" min="1" value="2">
+                </div>
+            </div>
+
+            <table class="process-table">
+                <thead>
+                    <tr>
+                        <th>PID</th>
+                        <th>Arrival</th>
+                        <th>Burst</th>
+                        <th id="priority-header" style="display: none;">Priority</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="process-table-body">
+                    <tr>
+                        <td>P1</td>
+                        <td><input type="number" min="0" value="0" class="arrival-time"></td>
+                        <td><input type="number" min="1" value="5" class="burst-time"></td>
+                        <td class="priority-cell" style="display: none;"><input type="number" min="1" value="3" class="priority"></td>
+                        <td><button class="btn btn-small btn-remove">Remove</button></td>
+                    </tr>
+                    <tr>
+                        <td>P2</td>
+                        <td><input type="number" min="0" value="2" class="arrival-time"></td>
+                        <td><input type="number" min="1" value="3" class="burst-time"></td>
+                        <td class="priority-cell" style="display: none;"><input type="number" min="1" value="1" class="priority"></td>
+                        <td><button class="btn btn-small btn-remove">Remove</button></td>
+                    </tr>
+                    <tr>
+                        <td>P3</td>
+                        <td><input type="number" min="0" value="4" class="arrival-time"></td>
+                        <td><input type="number" min="1" value="1" class="burst-time"></td>
+                        <td class="priority-cell" style="display: none;"><input type="number" min="1" value="4" class="priority"></td>
+                        <td><button class="btn btn-small btn-remove">Remove</button></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <button class="btn btn-add" id="add-process">Add Process</button>
+            <button class="btn btn-run" id="run-algorithm">Run</button>
+        </div>
+
+        <div class="visualization">
+            <h2>Gantt Chart</h2>
+            <div id="gantt-chart"></div>
+        </div>
+
+        <div class="results">
+            <h2>Results</h2>
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>PID</th>
+                        <th>Completion</th>
+                        <th>Waiting</th>
+                        <th>Turnaround</th>
+                        <th>Response</th>
+                    </tr>
+                </thead>
+                <tbody id="results-table-body"></tbody>
+            </table>
+            <div class="summary-metrics">
+                <div>Average Waiting: <span id="avg-waiting-time">0</span> ms</div>
+                <div>Average Turnaround: <span id="avg-turnaround-time">0</span> ms</div>
+                <div>Average Response: <span id="avg-response-time">0</span> ms</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const algorithmBtns = document.querySelectorAll('.algorithm-btn'),
+                  currentAlgorithm = document.getElementById('current-algorithm'),
+                  algorithmInfo = document.getElementById('algorithm-info'),
+                  rrControls = document.getElementById('rr-controls'),
+                  priorityHeader = document.getElementById('priority-header'),
+                  priorityCells = document.querySelectorAll('.priority-cell'),
+                  processTableBody = document.getElementById('process-table-body'),
+                  addProcessBtn = document.getElementById('add-process'),
+                  runBtn = document.getElementById('run-algorithm');
+
+            const descriptions = {
+                fcfs: "FCFS executes processes in arrival order. Non-preemptive.",
+                sjf: "SJF picks shortest job first. Non-preemptive.",
+                srtf: "SRTF picks shortest remaining time, preempts if needed.",
+                rr: "Round Robin uses time quantum, cycles processes.",
+                priority: "Priority executes highest priority first."
+            };
+
+            algorithmBtns.forEach(btn => btn.addEventListener('click', () => {
+                algorithmBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const algo = btn.dataset.algorithm;
+                currentAlgorithm.textContent = btn.textContent;
+                algorithmInfo.textContent = descriptions[algo];
+                rrControls.style.display = algo === 'rr' ? 'flex' : 'none';
+                priorityHeader.style.display = algo === 'priority' ? 'table-cell' : 'none';
+                priorityCells.forEach(cell => cell.style.display = algo === 'priority' ? 'table-cell' : 'none');
+            }));
+
+            addProcessBtn.addEventListener('click', () => {
+                const rowCount = processTableBody.rows.length,
+                      newRow = processTableBody.insertRow(),
+                      pid = `P${rowCount + 1}`,
+                      showPriority = document.querySelector('.algorithm-btn.active').dataset.algorithm === 'priority';
+                newRow.innerHTML = `
+                    <td>${pid}</td>
+                    <td><input type="number" min="0" value="0" class="arrival-time"></td>
+                    <td><input type="number" min="1" value="3" class="burst-time"></td>
+                    <td class="priority-cell" ${showPriority ? '' : 'style="display: none;"'}><input type="number" min="1" value="2" class="priority"></td>
+                    <td><button class="btn btn-small btn-remove">Remove</button></td>
+                `;
+                newRow.querySelector('.btn-remove').addEventListener('click', () => processTableBody.removeChild(newRow));
+            });
+
+            processTableBody.addEventListener('click', e => {
+                if (e.target.classList.contains('btn-remove')) {
+                    e.target.closest('tr').remove();
+                    Array.from(processTableBody.rows).forEach((row, i) => row.cells[0].textContent = `P${i + 1}`);
+                }
+            });
+
+            runBtn.addEventListener('click', () => {
+                const algo = document.querySelector('.algorithm-btn.active').dataset.algorithm,
+                      processes = Array.from(processTableBody.rows).map(row => ({
+                          id: row.cells[0].textContent,
+                          arrivalTime: parseInt(row.querySelector('.arrival-time').value) || 0,
+                          burstTime: parseInt(row.querySelector('.burst-time').value) || 1,
+                          priority: parseInt(row.querySelector('.priority')?.value) || 0,
+                          remainingTime: parseInt(row.querySelector('.burst-time').value) || 1,
+                          startTime: -1,
+                          finishTime: -1,
+                          firstResponse: -1
+                      }));
+                if (!processes.length) return alert('Add at least one process.');
+                const [ganttData, metrics, completed] = {
+                    fcfs: runFCFS,
+                    sjf: runSJF,
+                    srtf: runSRTF,
+                    rr: () => runRoundRobin(processes, parseInt(document.getElementById('time-quantum').value)),
+                    priority: runPriority
+                }[algo](processes);
+                renderGanttChart(ganttData);
+                updateMetrics(metrics, completed);
+            });
+
+            function runFCFS(processes) {
+                const procs = [...processes].sort((a, b) => a.arrivalTime - b.arrivalTime);
+                let time = 0, gantt = [];
+                procs.forEach(p => {
+                    if (p.arrivalTime > time) {
+                        gantt.push({ id: "idle", start: time, end: p.arrivalTime });
+                        time = p.arrivalTime;
+                    }
+                    p.startTime = p.firstResponse = time;
+                    time += p.burstTime;
+                    p.finishTime = time;
+                    gantt.push({ id: p.id, start: p.startTime, end: p.finishTime });
+                });
+                return [gantt, calculateMetrics(procs), procs];
+            }
+
+            function runSJF(processes) {
+                const procs = [...processes].sort((a, b) => a.arrivalTime - b.arrivalTime),
+                      completed = [], ready = [], gantt = [];
+                let time = 0, i = 0;
+                while (completed.length < procs.length) {
+                    while (i < procs.length && procs[i].arrivalTime <= time) ready.push(procs[i++]);
+                    if (!ready.length && i < procs.length) {
+                        gantt.push({ id: "idle", start: time, end: procs[i].arrivalTime });
+                        time = procs[i].arrivalTime;
+                        continue;
+                    }
+                    ready.sort((a, b) => a.burstTime - b.burstTime);
+                    const p = ready.shift();
+                    p.startTime = p.firstResponse = time;
+                    time += p.burstTime;
+                    p.finishTime = time;
+                    gantt.push({ id: p.id, start: p.startTime, end: p.finishTime });
+                    completed.push(p);
+                }
+                return [gantt, calculateMetrics(completed), completed];
+            }
+
+            function runSRTF(processes) {
+                const procs = [...processes], completed = [], gantt = [];
+                let time = 0, last = null;
+                while (completed.length < procs.length) {
+                    let shortest = Infinity, current = null;
+                    procs.forEach(p => {
+                        if (p.arrivalTime <= time && p.remainingTime > 0 && p.remainingTime < shortest)
+                            shortest = p.remainingTime, current = p;
+                    });
+                    if (!current) {
+                        let next = Infinity;
+                        procs.forEach(p => { if (p.remainingTime > 0 && p.arrivalTime < next) next = p.arrivalTime; });
+                        if (next !== Infinity) {
+                            gantt.push({ id: "idle", start: time, end: next });
+                            time = next;
+                        }
+                        continue;
+                    }
+                    if (current.firstResponse === -1) current.firstResponse = time;
+                    current.remainingTime--;
+                    if (last !== current && last) {
+                        gantt.push({ id: last.id, start: last.startTime, end: time });
+                        current.startTime = time;
+                    } else if (!last) current.startTime = time;
+                    time++;
+                    if (current.remainingTime === 0) {
+                        current.finishTime = time;
+                        gantt.push({ id: current.id, start: current.startTime, end: time });
+                        completed.push(current);
+                        last = null;
+                    } else last = current;
+                }
+                return [gantt, calculateMetrics(completed), completed];
+            }
+
+            function runRoundRobin(processes, quantum) {
+                const procs = [...processes].sort((a, b) => a.arrivalTime - b.arrivalTime),
+                      ready = [], completed = [], gantt = [];
+                let time = 0, i = 0;
+                while (completed.length < procs.length) {
+                    while (i < procs.length && procs[i].arrivalTime <= time) ready.push(procs[i++]);
+                    if (!ready.length && i < procs.length) {
+                        gantt.push({ id: "idle", start: time, end: procs[i].arrivalTime });
+                        time = procs[i].arrivalTime;
+                        continue;
+                    }
+                    const p = ready.shift();
+                    if (p.firstResponse === -1) p.firstResponse = time;
+                    const execTime = Math.min(quantum, p.remainingTime);
+                    p.remainingTime -= execTime;
+                    gantt.push({ id: p.id, start: time, end: time + execTime });
+                    time += execTime;
+                    while (i < procs.length && procs[i].arrivalTime <= time) ready.push(procs[i++]);
+                    if (p.remainingTime === 0) {
+                        p.finishTime = time;
+                        completed.push(p);
+                    } else ready.push(p);
+                }
+                return [gantt, calculateMetrics(completed), completed];
+            }
+
+            function runPriority(processes) {
+                const procs = [...processes].sort((a, b) => a.arrivalTime - b.arrivalTime),
+                      completed = [], ready = [], gantt = [];
+                let time = 0, i = 0;
+                while (completed.length < procs.length) {
+                    while (i < procs.length && procs[i].arrivalTime <= time) ready.push(procs[i++]);
+                    if (!ready.length && i < procs.length) {
+                        gantt.push({ id: "idle", start: time, end: procs[i].arrivalTime });
+                        time = procs[i].arrivalTime;
+                        continue;
+                    }
+                    ready.sort((a, b) => b.priority - a.priority);
+                    const p = ready.shift();
+                    p.startTime = p.firstResponse = time;
+                    time += p.burstTime;
+                    p.finishTime = time;
+                    gantt.push({ id: p.id, start: p.startTime, end: p.finishTime });
+                    completed.push(p);
+                }
+                return [gantt, calculateMetrics(completed), completed];
+            }
+
+            function calculateMetrics(processes) {
+                let wait = 0, turn = 0, resp = 0;
+                processes.forEach(p => {
+                    const t = p.finishTime - p.arrivalTime;
+                    p.waitingTime = t - p.burstTime;
+                    p.turnaroundTime = t;
+                    p.responseTime = p.firstResponse - p.arrivalTime;
+                    p.completionTime = p.finishTime;
+                    wait += p.waitingTime;
+                    turn += t;
+                    resp += p.responseTime;
+                });
+                return {
+                    avgWaitingTime: (wait / processes.length).toFixed(2),
+                    avgTurnaroundTime: (turn / processes.length).toFixed(2),
+                    avgResponseTime: (resp / processes.length).toFixed(2)
+                };
+            }
+
+            function renderGanttChart(ganttData) {
+                const chart = document.getElementById('gantt-chart');
+                chart.innerHTML = '';
+                if (!ganttData.length) return;
+                const container = document.createElement('div');
+                container.className = 'gantt-container';
+                const timeline = document.createElement('div');
+                timeline.className = 'timeline';
+                const endTime = ganttData[ganttData.length - 1].end, scale = 40;
+                for (let i = 0; i <= endTime; i++) {
+                    const marker = document.createElement('div');
+                    marker.className = 'time-marker';
+                    marker.style.left = `${i * scale}px`;
+                    marker.textContent = i;
+                    timeline.appendChild(marker);
+                }
+                container.appendChild(timeline);
+                const procTimeline = document.createElement('div');
+                procTimeline.className = 'timeline';
+                ganttData.forEach(slot => {
+                    const slotDiv = document.createElement('div');
+                    slotDiv.className = `process-slot ${slot.id !== 'idle' ? `process-p${parseInt(slot.id.replace('P', ''))}` : 'idle'}`;
+                    slotDiv.textContent = slot.id === 'idle' ? 'Idle' : slot.id;
+                    slotDiv.style.width = `${(slot.end - slot.start) * scale}px`;
+                    slotDiv.style.left = `${slot.start * scale}px`;
+                    procTimeline.appendChild(slotDiv);
+                });
+                procTimeline.style.minWidth = `${endTime * scale}px`;
+                container.appendChild(procTimeline);
+                chart.appendChild(container);
+            }
+
+            function updateMetrics(metrics, processes) {
+                document.getElementById('avg-waiting-time').textContent = metrics.avgWaitingTime;
+                document.getElementById('avg-turnaround-time').textContent = metrics.avgTurnaroundTime;
+                document.getElementById('avg-response-time').textContent = metrics.avgResponseTime;
+                document.getElementById('results-table-body').innerHTML = processes.map(p => `
+                    <tr>
+                        <td>${p.id}</td>
+                        <td>${p.completionTime}</td>
+                        <td>${p.waitingTime}</td>
+                        <td>${p.turnaroundTime}</td>
+                        <td>${p.responseTime}</td>
+                    </tr>
+                `).join('');
+            }
+
+            processTableBody.addEventListener('input', e => {
+                if (['arrival-time', 'burst-time', 'priority'].includes(e.target.className)) {
+                    const input = e.target, min = parseInt(input.min);
+                    if (input.value !== '' && parseInt(input.value) < min) input.value = min;
+                }
+            });
+
+            const initAlgo = document.querySelector('.algorithm-btn.active').dataset.algorithm;
+            priorityHeader.style.display = initAlgo === 'priority' ? 'table-cell' : 'none';
+            priorityCells.forEach(cell => cell.style.display = initAlgo === 'priority' ? 'table-cell' : 'none');
+        });
+    </script>
+</body>
+</html>
